@@ -17,6 +17,14 @@ void removeBlanks(char* string){
 	*i = 0;
 }
 
+int searchVar(char vars[1000][11], int size, char* name){
+	int i = 0;
+	while(i<size && strcmp(vars[i], name)!=0){
+		i++;
+	}
+	return i;
+}
+
 int main(int argc, char* argv[]){
 
 
@@ -25,19 +33,19 @@ int main(int argc, char* argv[]){
 	char* line;
 	char output[1000000]; //1MB
 	int count = 0;
+	char vars[1000][11];
 	do{
-		count++;
 
 		char* beginning = (char*)malloc(sizeof(char)*100);
 		fgets(beginning, 100, fin);
-		printf("while %s\n", beginning);
 		int stmt = NONE;
+		int index;
 		line = beginning;
 		//remove blank spaces
 		//removeBlanks(line);
 		//label
 		while(line[0]=='L' && line[2]==':'){ //label
-			fprintf(fout, "%5s.3", line);
+			fprintf(fout, "%.3s NOOP\n", line);
 			line +=3;
 		}
 		//operator
@@ -53,26 +61,90 @@ int main(int argc, char* argv[]){
 		op4[0] = 0;
 		op5[0] = 0;
 		op6[0] = 0;
-		printf("ops %s %s %s %s %s %s \n", op1, op2, op3, op4, op5, op6);
 		sscanf(line, "%s %s %s %s %s %s", op1, op2, op3, op4, op5, op6);
-		printf("ops %s %s %s %s %s %s \n", op1, op2, op3, op4, op5, op6);
 		//statements?
-		if(strcmp(op1, "if")==0){
-
-		}else if(strcmp(op1, "iffalse")==0){
-
+		if(strcmp(op1, "if")==0 || strcmp(op1, "iffalse")==0){
+			if(isdigit(op2[0])){
+				fprintf(fout, " LDCT %s\n", op2);
+			}
+			else{
+				index = searchVar(vars, count, op2);
+				if(index==count){
+					strcpy(vars[index], op2);
+					count++;
+				}
+				fprintf(fout, " LDVL %d\n", index);
+			}
+			if(isdigit(op4[0])){
+				index = searchVar(vars, count, op4);
+				if(index==count){
+					strcpy(vars[index], op4);
+					count++;
+				}
+				fprintf(fout, " LDCT %s\n", op4);
+			}
+			else{
+				index = searchVar(vars, count, op4);
+				if(index==count){
+					strcpy(vars[index], op4);
+					count++;
+				}
+				fprintf(fout, " LDVL %d\n", index);
+			}
+			
+			if(strcmp(op3, "==")==0){
+				fprintf(fout, " EQUA\n");
+			}else if(strcmp(op3, "!=")==0){
+				fprintf(fout, " DIFF\n");
+			}else if(strcmp(op3, ">=")==0){
+				fprintf(fout, " GEQU\n");
+			}else if(strcmp(op3, ">")==0){
+				fprintf(fout, " GRTR\n");
+			}else if(strcmp(op3, "<=")==0){
+				fprintf(fout, " LEQU\n");
+			}else if(strcmp(op3, "<")==0){
+				fprintf(fout, " LESS\n");
+			}
+			if(strcmp(op1, "if")==0)
+				fprintf(fout, " LNOT\n");
+			fprintf(fout, " JUMP %s\n", op6);
 		}else if(strcmp(op1, "goto")==0){
-
+			fprintf(fout, " JUMP %s\n", op2);
 		}
 		else{ //variable
 			if(op2[0]=='['){
-				fprintf(fout, " STVI 0,%d\n", count);
+				index = searchVar(vars, count, op1);
+				if(index==count){
+					strcpy(vars[index], op1);
+					count++;
+				}
+				if(isdigit(op3[0])){
+					fprintf(fout, " STVI %d,%s\n", index, op3);
+				}
+				else{
+					int index2 = searchVar(vars, count, op3);
+					if(index2==count){
+						strcpy(vars[index], op3);
+						count++;
+					}
+					fprintf(fout, " STVI %d,%d\n", index, index2);
+				}
 			}
 			else if(op2[0]=='='){
 				if(isdigit(op5[0])){
+					index = searchVar(vars, count, op5);
+					if(index==count){
+						strcpy(vars[index], op5);
+						count++;
+					}
 					fprintf(fout, " LDCT %s\n", op5);
 				}
 				if(isdigit(op3[0])){
+					index = searchVar(vars, count, op3);
+					if(index==count){
+						strcpy(vars[index], op3);
+						count++;
+					}
 					fprintf(fout, " LDCT %s\n", op3);
 				}
 				switch(op4[0]){
@@ -89,12 +161,23 @@ int main(int argc, char* argv[]){
 						fprintf(fout, " DIVI\n");
 						break;
 					case '[': // '['
-						fprintf(fout, " LDLI 0,%d\n", count);
-						fprintf(fout, " STVL 0,%d\n", count);
+						index = searchVar(vars, count, op3);
+						if(index==count){
+							strcpy(vars[index], op3);
+							count++;
+						}
+						fprintf(fout, " LDLI 0,%d\n", index);
+						fprintf(fout, " STVL 0,%d\n", index);
 						break;
 					default:
 						break;
 				}
+				index = searchVar(vars, count, op1);
+				if(index==count){
+					strcpy(vars[index], op1);
+					count++;
+				}
+				fprintf(fout, " STVL 0,%d\n", index);
 			}
 		}
 		//operand 1
@@ -105,5 +188,4 @@ int main(int argc, char* argv[]){
 		//
 		free(beginning);
 	}while(!feof(fin));
-	printf("%s\n", output);
 }
