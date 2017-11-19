@@ -398,7 +398,15 @@ unary:
 
 factor:
 	OPENPAR bool CLOSEPAR {}
-	| loc {}
+	| loc {
+		printf("igual a loc\n");
+		char* temp = pop();
+		char str1[SYMLEN] = "t_";
+		snprintf(str1, SYMLEN, "t_%d", tempVar);
+		tempVar++;
+		quadAdd("=", "", temp, str1);
+		push(str1);
+	} 
 	| NUM {
 		char str[SYMLEN];
 		snprintf(str, SYMLEN, "%d", $1);
